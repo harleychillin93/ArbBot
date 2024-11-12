@@ -48,17 +48,16 @@ quote1_request_body = {
     "inputTokens": [
         {
             "tokenAddress": WETH_ca_poly, # checksummed input token address
-            "amount": str(token1_balance * (10 ** WETH_dec_poly))[:-2]
-, # input amount as a string in fixed integer precision
+            "amount": str(int(token1_balance * (10 ** WETH_dec_poly))) , # input amount as a string in fixed integer precision
         }
     ],
-    "outputTokens": [
+"outputTokens": [
         {
             "tokenAddress": USDC_ca_poly, # checksummed output token address
             "proportion": 1
         }
     ],
-    "slippageLimitPercent": 0.3, # set your slippage limit percentage (1 = 1%)
+    "slippageLimitPercent": 0.7, # set your slippage limit percentage (1 = 1%)
     "userAddr": pubaddress, # checksummed user address
     "referralCode": 0, # referral code (recommended)
     "disableRFQs": True,
@@ -99,7 +98,7 @@ arb_op = 0
 
 
 
-while arb_op <= 0.015:
+while arb_op <= 0.007:
   sleep(5)
   # Now we know the trade size. Lets get a buy side quote and a sell side quote
 
@@ -110,7 +109,7 @@ while arb_op <= 0.015:
       "inputTokens": [
           {
               "tokenAddress": USDC_ca_poly, # checksummed input token address
-              "amount": str(trade_size * (10 ** USDC_dec_poly)) , # input amount as a string in fixed integer precision
+              "amount": str(int(trade_size * (10 ** USDC_dec_poly))) , # input amount as a string in fixed integer precision
           }
       ],
       "outputTokens": [
@@ -147,7 +146,7 @@ while arb_op <= 0.015:
       "inputTokens": [
           {
               "tokenAddress": WETH_ca_poly, # checksummed input token address
-              "amount": str(token1_quoted * (10 ** WETH_dec_poly))[:-2] , # input amount as a string in fixed integer precision
+              "amount": str(int(token1_quoted * (10 ** WETH_dec_poly))) , # input amount as a string in fixed integer precision
           }
       ],
       "outputTokens": [

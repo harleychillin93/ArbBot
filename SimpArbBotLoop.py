@@ -48,17 +48,16 @@ quote1_request_body = {
     "inputTokens": [
         {
             "tokenAddress": WETH_ca_poly, # checksummed input token address
-            "amount": str(token1_balance * (10 ** WETH_dec_poly))[:-2]
-, # input amount as a string in fixed integer precision
+            "amount": str(int(token1_balance * (10 ** WETH_dec_poly))) , # input amount as a string in fixed integer precision
         }
     ],
-    "outputTokens": [
+"outputTokens": [
         {
             "tokenAddress": USDC_ca_poly, # checksummed output token address
             "proportion": 1
         }
     ],
-    "slippageLimitPercent": 0.3, # set your slippage limit percentage (1 = 1%)
+    "slippageLimitPercent": 0.7, # set your slippage limit percentage (1 = 1%)
     "userAddr": pubaddress, # checksummed user address
     "referralCode": 0, # referral code (recommended)
     "disableRFQs": True,
@@ -96,7 +95,7 @@ lowest_liq = min([DolVal_1, token2_balance])
 trade_size = math.ceil(lowest_liq / 5)
 
 arb_op = 0
-i = 0
+i=0
 
 while i <= 10:
 
@@ -111,7 +110,7 @@ while i <= 10:
         "inputTokens": [
             {
                 "tokenAddress": USDC_ca_poly, # checksummed input token address
-                "amount": str(trade_size * (10 ** USDC_dec_poly)) , # input amount as a string in fixed integer precision
+                "amount": str(int(trade_size * (10 ** USDC_dec_poly))) , # input amount as a string in fixed integer precision
             }
         ],
         "outputTokens": [
@@ -148,7 +147,7 @@ while i <= 10:
         "inputTokens": [
             {
                 "tokenAddress": WETH_ca_poly, # checksummed input token address
-                "amount": str(token1_quoted * (10 ** WETH_dec_poly))[:-2] , # input amount as a string in fixed integer precision
+                "amount": str(int(token1_quoted * (10 ** WETH_dec_poly))) , # input amount as a string in fixed integer precision
             }
         ],
         "outputTokens": [
@@ -209,7 +208,7 @@ while i <= 10:
     # handle Transaction Assembly failure cases
 
 
-
+  txn1_list = []
   # Send TXN 1
   transaction1 = assembled_transaction1["transaction"]
   # web3py requires the value to be an integer
@@ -219,7 +218,7 @@ while i <= 10:
   tx_hash1 = poly_web3.eth.send_raw_transaction(signed_tx.raw_transaction)
   print("txn1")
   print(tx_hash1.hex())
-
+  txn1_list[i]=tx_hash1.hex()
 
   # Sell side
   assemble_request_body2 = {
@@ -240,7 +239,7 @@ while i <= 10:
   else:
     print(f"Error in Transaction Assembly: {response2.json()}")
     # handle Transaction Assembly failure cases
-
+  txn2_list=[]
   # Send TXN 2
   transaction2 = assembled_transaction2["transaction"]
   # web3py requires the value to be an integer
@@ -251,5 +250,10 @@ while i <= 10:
   tx_hash2 = poly_web3.eth.send_raw_transaction(signed_tx.raw_transaction)
   print("txn2")
   print(tx_hash2.hex())
+  txn2_list[i]=tx_hash2.hex()
 
   i = i + 1
+  sleep(4)
+
+print(txn1_list)
+print(txn2_list)
