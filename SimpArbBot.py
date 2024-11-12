@@ -38,6 +38,8 @@ import json
 import requests
 import math
 from time import sleep
+from hexbytes import HexBytes
+
 
 quote_url = "https://api.odos.xyz/sor/quote/v2"
 
@@ -73,7 +75,7 @@ if response1.status_code == 200:
   quote = response1.json()
   # handle quote response data
 else:
-  print(f"Error in Quote: {response.json()}")
+  print(f"Error in Quote: {response1.json()}")
   # handle quote failure cases
 
 DolVal_1 = int(quote['outAmounts'][0]) / (10 ** USDC_dec_poly)
@@ -95,7 +97,9 @@ trade_size = math.ceil(lowest_liq / 2)
 
 arb_op = 0
 
-while arb_op <= 0.008:
+
+
+while arb_op <= 0.007:
   sleep(5)
   # Now we know the trade size. Lets get a buy side quote and a sell side quote
 
@@ -115,7 +119,7 @@ while arb_op <= 0.008:
               "proportion": 1
           }
       ],
-      "slippageLimitPercent": 0.3, # set your slippage limit percentage (1 = 1%)
+      "slippageLimitPercent": 0.5, # set your slippage limit percentage (1 = 1%)
       "userAddr": pubaddress, # checksummed user address
       "referralCode": 0, # referral code (recommended)
       "disableRFQs": True,
@@ -152,7 +156,7 @@ while arb_op <= 0.008:
               "proportion": 1
           }
       ],
-      "slippageLimitPercent": 0.3, # set your slippage limit percentage (1 = 1%)
+      "slippageLimitPercent": 0.6, # set your slippage limit percentage (1 = 1%)
       "userAddr": pubaddress, # checksummed user address
       "referralCode": 0, # referral code (recommended)
       "disableRFQs": True,
@@ -179,8 +183,9 @@ while arb_op <= 0.008:
 
 # If code makes it to here theres and arb opportunity so use the same buy_quote and sell quote we just made
 
-assemble_url = "https://api.odos.xyz/sor/assemble"
 
+
+assemble_url = "https://api.odos.xyz/sor/assemble"
 
 # Buy side
 assemble_request_body1 = {
@@ -203,6 +208,19 @@ else:
   # handle Transaction Assembly failure cases
 
 
+
+# Send TXN 1
+transaction1 = assembled_transaction1["transaction"]
+# web3py requires the value to be an integer
+transaction1["value"] = int(transaction1["value"])
+signed_tx = poly_web3.eth.account.sign_transaction(transaction1, prikey)
+# 4. Send the signed transaction
+tx_hash1 = poly_web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+print("txn1")
+print(tx_hash1.hex())
+
+
+# Sell side
 assemble_request_body2 = {
     "userAddr": pubaddress, # the checksummed address used to generate the quote
     "pathId": sell_quote["pathId"], # Replace with the pathId from quote response in step 1
@@ -222,20 +240,13 @@ else:
   print(f"Error in Transaction Assembly: {response2.json()}")
   # handle Transaction Assembly failure cases
 
-
-
-# Send TXN 1
-transaction1 = assembled_transaction1["transaction"]
-# web3py requires the value to be an integer
-transaction1["value"] = int(transaction1["value"])
-signed_tx = poly_web3.eth.account.sign_transaction(transaction1, prikey)
-# 4. Send the signed transaction
-tx_hash = poly_web3.eth.send_raw_transaction(signed_tx.rawTransaction)
-
 # Send TXN 2
 transaction2 = assembled_transaction2["transaction"]
 # web3py requires the value to be an integer
 transaction2["value"] = int(transaction2["value"])
+transaction2["nonce"] = int(transaction2["nonce"])+1
 signed_tx = poly_web3.eth.account.sign_transaction(transaction2, prikey)
 # 4. Send the signed transaction
-tx_hash = poly_web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+tx_hash2 = poly_web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+print("txn2")
+print(tx_hash2.hex())
