@@ -99,7 +99,7 @@ arb_op = 0
 
 
 
-while arb_op <= 0.007:
+while arb_op <= 0.015:
   sleep(5)
   # Now we know the trade size. Lets get a buy side quote and a sell side quote
 
@@ -119,7 +119,7 @@ while arb_op <= 0.007:
               "proportion": 1
           }
       ],
-      "slippageLimitPercent": 0.5, # set your slippage limit percentage (1 = 1%)
+      "slippageLimitPercent": 0.7, # set your slippage limit percentage (1 = 1%)
       "userAddr": pubaddress, # checksummed user address
       "referralCode": 0, # referral code (recommended)
       "disableRFQs": True,
@@ -156,7 +156,7 @@ while arb_op <= 0.007:
               "proportion": 1
           }
       ],
-      "slippageLimitPercent": 0.6, # set your slippage limit percentage (1 = 1%)
+      "slippageLimitPercent": 0.7, # set your slippage limit percentage (1 = 1%)
       "userAddr": pubaddress, # checksummed user address
       "referralCode": 0, # referral code (recommended)
       "disableRFQs": True,
