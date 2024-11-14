@@ -6,6 +6,7 @@ from web3 import Web3
 from eth_account import Account
 from dotenv import load_dotenv
 import os
+from web3.middleware import PythonicMiddleware
 
 
 
@@ -39,7 +40,7 @@ def polyGetTokenOrProxyAbi(contractAddress: str, RPCURL: str):
 
 def polyGetDecimals(Address: str, RPCURL: str):
     web3Poly = Web3(Web3.HTTPProvider(RPCURL))
-    web3Poly.middleware_onion.inject(geth_poa_middleware, layer=0)
+    web3Poly.middleware_onion.inject(PythonicMiddleware, layer=0)
     contractAddr = Web3.to_checksum_address(Address)
     Abi = polyGetTokenOrProxyAbi(contractAddr,RPCURL)
     tokenContract = web3Poly.eth.contract(contractAddr, abi=Abi)

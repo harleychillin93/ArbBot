@@ -96,38 +96,21 @@ while i <= 1:
   buy_quote = quote[0]
   Assembled_Buy = SOR_Assemble(buy_quote, pubaddress)
   nonce = Assembled_Buy['transaction']['nonce']
-
-  # Send TXN 1
-  transaction1 = Assembled_Buy["transaction"]
-  # web3py requires the value to be an integer
-  transaction1["value"] = int(transaction1["value"])
-  signed_tx = poly_web3.eth.account.sign_transaction(transaction1, prikey)
-  # 4. Send the signed transaction
-  tx_hash1 = poly_web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-  print("txn1")
-  print(tx_hash1.hex())
-  txn1_list.append(tx_hash1.hex())
+  buy_txn_hash = SOR_SendTxn(Assembled_Buy, polyRPCURL, prikey)
+  print(buy_txn_hash)
+  
 
 
   quote = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, token1_ToRecieve, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
   sell_quote = quote[0]
   Assembled_Sell = SOR_Assemble(sell_quote, pubaddress)
   Assembled_Sell['transaction']['nonce'] = nonce+1
+  sell_txn_hash = SOR_SendTxn(Assembled_Sell, polyRPCURL, prikey)
+  print(sell_txn_hash)
 
-  # Send TXN 2
-  transaction2 = Assembled_Sell["transaction"]
-  # web3py requires the value to be an integer
-  transaction2["value"] = int(transaction2["value"])
-  signed_tx = poly_web3.eth.account.sign_transaction(transaction2, prikey)
-  # 4. Send the signed transaction
-  tx_hash2 = poly_web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-  print("txn2")
-  print(tx_hash2.hex())
-  txn2_list.append(tx_hash2.hex())
+  
   arb_op = 0
   i = i + 1
   sleep(45)
 
 
-print(txn1_list)
-print(txn2_list)
