@@ -1,0 +1,4 @@
+Timestamp,Event,Trade ID,Symbolin,Quantity,SymbolOut,Price,GasPrice,GasEstimate,SymbolIn
+init,init,init,,init,init,init,init,init,init
+2024-11-20 06:47:49,Script Started,,,,,,,,
+2024-11-20 07:12:44,Script Started,,,,,,,,

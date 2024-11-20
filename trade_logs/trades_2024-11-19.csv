@@ -1,0 +1,8 @@
+Timestamp,Event,Trade ID,Symbolin,Quantity,SymbolOut,Price,GasPrice,GasEstimate,SymbolIn
+init,init,init,,init,init,init,init,init,init
+2024-11-19 16:37:28,Script Started,,,,,,,,
+2024-11-19 16:47:21,Buy Side Arb,995bb3312cbb5fc37c0b0db6a9866f603630db374ed7bf1e05798b702231040e,,56,WETH,0.018139193796633535,30017804666,196822,USDCe
+2024-11-19 16:47:22,Sell Side Arb,5b19fa37a8c24b3e8e3b7bf162e3f4d5eea0edbbd2b8f5a76ad14b43e0a3f2aa,,56,USDCe,56.9408,30017804666,1284969,WETH
+2024-11-19 18:35:13,Script Started,,,,,,,,
+2024-11-19 18:39:40,Script Started,,,,,,,,
+2024-11-19 19:58:33,Script Started,,,,,,,,

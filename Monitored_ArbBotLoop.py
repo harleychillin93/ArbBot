@@ -8,8 +8,30 @@ from ArbBotFuncs import get_trade_log_file_name
 from ArbBotFuncs import init_trade_log_file
 from ArbBotFuncs import log_trade_event
 from ArbBotFuncs import save_trade_log
+from ArbBotFuncs import init_port_log_file
+from ArbBotFuncs import log_port_event
 
 load_dotenv()
+
+# Define the trade log file directory
+Log_Dir = "trade_logs"
+# Ensure the log directory exists
+os.makedirs(Log_Dir, exist_ok=True)
+# Generate today's log file name based on the date
+log_df = init_trade_log_file(Log_Dir)
+# Save Note
+log_df = log_trade_event(log_df, 
+                   'Script Started')
+# Function to save the log DataFrame to a CSV file
+save_trade_log(Log_Dir, log_df)
+
+# Define the portfolio log file directory
+Port_Dir = "portfolio_logs"
+# Ensure the log directory exists
+os.makedirs(Port_Dir, exist_ok=True)
+# Generate today's log file name based on the date
+port_df = init_port_log_file(Port_Dir)
+
 
 # Security
 prikey = os.getenv("MM_PriKey")
@@ -30,6 +52,12 @@ tkn2_dec_poly = int(os.getenv("poly_USDCe_dec"))
 polyRPCURL = os.getenv("polyRPCURL")
 # Connect RPC
 poly_web3 = Web3(Web3.HTTPProvider(polyRPCURL))
+
+# Save Portfolio at Startup
+port_df = log_port_event(Port_Dir, port_df, pubaddress, polyRPCURL, event ='Script Started')
+
+
+
 # Create token contract instance
 token1_contract = poly_web3.eth.contract(address=tkn1_ca_poly, abi=tkn1_abi_poly)
 # Use contract instance to get balance of wallet in token's smallest unit (like "wei" for ETH)
@@ -48,6 +76,7 @@ from hexbytes import HexBytes
 from ArbBotFuncs import SOR_Quote
 from ArbBotFuncs import SOR_Assemble
 from ArbBotFuncs import SOR_SendTxn
+from ArbBotFuncs import SOR_GetGas4Quote
 
 quote_info = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, token1_balance, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
 
@@ -79,7 +108,7 @@ txn2_list = []
 
 while i <= 1:
 
-  while arb_op <= 0.009:
+  while arb_op <= 0.012:
     sleep(4)
     # Now we know the trade size. Lets get a buy side quote and a sell side quote
 
@@ -98,24 +127,37 @@ while i <= 1:
   # If code makes it to here theres and arb opportunity so use the same buy_quote and sell quote we just made
 
   quote = SOR_Quote(tkn2_ca_poly, tkn2_dec_poly, trade_size, tkn1_ca_poly, tkn1_dec_poly, pubaddress)
+  price1 = quote[1]
   buy_quote = quote[0]
   Assembled_Buy = SOR_Assemble(buy_quote, pubaddress)
   nonce = Assembled_Buy['transaction']['nonce']
   buy_txn_hash = SOR_SendTxn(Assembled_Buy, polyRPCURL, prikey)
   print(buy_txn_hash)
   
-
-
   quote = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, token1_ToRecieve, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
+  price2 = quote[1]
   sell_quote = quote[0]
   Assembled_Sell = SOR_Assemble(sell_quote, pubaddress)
   Assembled_Sell['transaction']['nonce'] = nonce+1
   sell_txn_hash = SOR_SendTxn(Assembled_Sell, polyRPCURL, prikey)
   print(sell_txn_hash)
 
-  
+  network = 'poly'; # could be any supported network
+  key = os.getenv("Owlracle_Key"); # fill your api key here
+  res = requests.get('https://api.owlracle.info/v4/{}/gas?apikey={}'.format(network, key))
+  data = res.json()
+  print(data)
+
+
+  log_df = log_trade_event(log_df, 'Buy Side Arb', buy_txn_hash, "USDCe", trade_size, "WETH", price1, poly_web3.eth.gas_price, SOR_GetGas4Quote(buy_quote, polyRPCURL, pubaddress))
+  log_df = log_trade_event(log_df, 'Sell Side Arb', sell_txn_hash, "WETH", token1_ToRecieve, "USDCe", price2, poly_web3.eth.gas_price, SOR_GetGas4Quote(sell_quote, polyRPCURL, pubaddress))
+  # Function to save the log DataFrame to a CSV file
+  save_trade_log(Log_Dir, log_df)
+
   arb_op = 0
   i = i + 1
-  sleep(45)
+  sleep(30)
+  port_df = log_port_event(Port_Dir, port_df, pubaddress, polyRPCURL, event ='Arb Attempted')
+
 
 

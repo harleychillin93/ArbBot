@@ -1,6 +1,7 @@
 from ArbBotFuncs import SOR_Quote
 from ArbBotFuncs import SOR_Assemble
 from ArbBotFuncs import SOR_SendTxn
+from ArbBotFuncs import SOR_GetGas4Quote
 from ArbBotFuncs import polyGetDecimals
 from ArbBotFuncs import polyGetTokenOrProxyAbi
 from web3 import Web3 
@@ -8,6 +9,8 @@ from eth_account import Account
 from dotenv import load_dotenv
 import os
 from time import sleep
+import requests
+
 load_dotenv()
 
 # Security
@@ -16,9 +19,9 @@ pubaddress = os.getenv("MM_PubAddr")
 account = Account.from_key(prikey)
 
 # Token 1 info
-tkn1_ca_poly = os.getenv("poly_WBTC_ca")
-tkn1_abi_poly = os.getenv("poly_WBTC_abi")
-tkn1_dec_poly = int(os.getenv("poly_WBTC_dec"))
+tkn1_ca_poly = os.getenv("poly_WETH_ca")
+tkn1_abi_poly = os.getenv("poly_WETH_abi")
+tkn1_dec_poly = int(os.getenv("poly_WETH_dec"))
 
 # Token 2 info
 tkn2_ca_poly = os.getenv("poly_USDCe_ca")
@@ -27,6 +30,7 @@ tkn2_dec_poly = int(os.getenv("poly_USDCe_dec"))
 
 # Define RPC
 polyRPCURL = os.getenv("polyRPCURL")
+web3 = Web3(Web3.HTTPProvider(polyRPCURL))
 
 ammount = 0.0015
 
@@ -35,6 +39,21 @@ print(abi)
 
 dec = polyGetDecimals(tkn1_ca_poly, polyRPCURL)
 print(dec)
+
+
+quote = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, ammount, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
+gas_estimate = SOR_GetGas4Quote(quote[0], polyRPCURL, pubaddress)
+gas = web3.eth.gas_price
+print(gas)
+print(gas_estimate)
+total_cost = (gas*gas_estimate) / (10 ** 18)
+print(total_cost)
+
+network = 'poly'; # could be any supported network
+key = os.getenv("Owlracle_Key"); # fill your api key here
+res = requests.get('https://api.owlracle.info/v4/{}/gas?apikey={}'.format(network, key))
+data = res.json()
+print(data)
 
 
 
