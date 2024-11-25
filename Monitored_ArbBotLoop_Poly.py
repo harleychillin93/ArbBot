@@ -10,14 +10,6 @@ from ArbBotFuncs import log_trade_event
 from ArbBotFuncs import save_trade_log
 from ArbBotFuncs import init_port_log_file
 from ArbBotFuncs import log_port_event
-import requests
-import math
-from time import sleep
-from hexbytes import HexBytes
-from ArbBotFuncs import SOR_Quote
-from ArbBotFuncs import SOR_Assemble
-from ArbBotFuncs import SOR_SendTxn
-from ArbBotFuncs import SOR_GetGas4Quote
 
 load_dotenv()
 
@@ -60,8 +52,10 @@ tkn2_dec_poly = int(os.getenv("poly_USDCe_dec"))
 polyRPCURL = os.getenv("polyRPCURL")
 # Connect RPC
 poly_web3 = Web3(Web3.HTTPProvider(polyRPCURL))
+
 # Save Portfolio at Startup
 port_df = log_port_event(Port_Dir, port_df, pubaddress, polyRPCURL, event ='Script Started')
+
 
 
 # Create token contract instance
@@ -74,13 +68,26 @@ print(f"Balance of token 1 at {tkn1_ca_poly} in wallet {pubaddress}: {token1_bal
 
 
 # At this point you can check a balance, now whats the usdc value of that balance, use odos
+import json
+import requests
+import math
+from time import sleep
+from hexbytes import HexBytes
+from ArbBotFuncs import SOR_Quote
+from ArbBotFuncs import SOR_Assemble
+from ArbBotFuncs import SOR_SendTxn
+from ArbBotFuncs import SOR_GetGas4Quote
+
 quote_info = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, token1_balance, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
+
 odos_quote = quote_info[0]
 human_quote = quote_info[1]
+
+
 DolVal_1 = float(human_quote)
 print("Dollar Value of is" , DolVal_1)
-## Youve got the dollar balance of 1, get $ balance of 2
 
+## Youve got the dollar balance of 1, get $ balance of 2
 # Create token contract instance
 token2_contract = poly_web3.eth.contract(address=tkn2_ca_poly, abi=tkn2_abi_poly)
 # Use contract instance to get balance of wallet in token's smallest unit (like "wei" for ETH)
@@ -92,55 +99,61 @@ print("Dollar Value of token 2" , token2_balance)
 
 # So now you know what avaialble liquidty you have. You never want to trade with more than 50% of the lowest balance per pair
 lowest_liq = min([DolVal_1, token2_balance])
-trade_size = math.ceil(lowest_liq / 3)
+trade_size = math.ceil(lowest_liq / 2)
 
-arb_op = 0
 i=1
+txn1_list = []
+txn2_list = []
 
 while i <= 1:
+  price_of_gas = 1000
+  arb_op = 0
+  while arb_op <= 0.015:
+    sleep(3)
 
-  while arb_op <= 0.012:
-    sleep(4)
-    # Now we know the trade size. Lets get a buy side quote and a sell side quote
+    temp = int(poly_web3.eth.gas_price * 12 // 10)
+    price_of_gas = poly_web3.from_wei(temp, 'gwei') 
+    
+    if price_of_gas > 200:
+      print(f"Gas price of {price_of_gas} Gwei is too high")
+    else:
+      print(f"Gas price of {price_of_gas} Gwei is appropriate")
 
-    # Want to buy exactly trade size, want to sell the exact ammount of other token to return trade_size
-    quote = SOR_Quote(tkn2_ca_poly, tkn2_dec_poly, trade_size, tkn1_ca_poly, tkn1_dec_poly, pubaddress)
-    buy_quote = quote[0]
-    price1 = quote[1]
-    token1_ToRecieve = int(buy_quote['outAmounts'][0]) / (10 ** tkn1_dec_poly)
+      # Want to buy exactly trade size, want to sell the exact ammount of other token to return trade_size
+      try: 
+        quote = SOR_Quote(tkn2_ca_poly, tkn2_dec_poly, trade_size, tkn1_ca_poly, tkn1_dec_poly, pubaddress)
+        buy_quote = quote[0]
+        token1_ToRecieve = int(buy_quote['outAmounts'][0]) / (10 ** tkn1_dec_poly)
+      except:
+        print("Arb Quote 1 not returned")
+        print(ValueError)  
+      
 
-    quote = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, token1_ToRecieve, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
-    sell_quote = quote[0]
-    price2 = quote[1]
-    token2_ToRecieve = int(sell_quote['outAmounts'][0]) / (10 ** tkn2_dec_poly)
+      try: 
+        quote = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, token1_ToRecieve, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
+        sell_quote = quote[0]
+        token2_ToRecieve = int(sell_quote['outAmounts'][0]) / (10 ** tkn2_dec_poly)
+      except:
+        print("Arb Quote 2 not returned")
+        print(ValueError) 
+      
+      arb_op = (token2_ToRecieve-trade_size)/trade_size
+      print(f"Current Arb_op is {arb_op} percent")
 
-    arb_op = (token2_ToRecieve-trade_size)/trade_size
-    print(arb_op)
 
-  # If code makes it to here theres and arb opportunity so use the same buy_quote and sell quote we just made
+      # If code makes it to here theres and arb opportunity and its good gas prices rn so make fresh quote and buy/sell
 
-  quote = SOR_Quote(tkn2_ca_poly, tkn2_dec_poly, trade_size, tkn1_ca_poly, tkn1_dec_poly, pubaddress)
-  buy_quote = quote[0]
-  price1 = quote[1]
+  
   Assembled_Buy = SOR_Assemble(buy_quote, pubaddress)
   nonce = Assembled_Buy['transaction']['nonce']
   buy_txn_hash = SOR_SendTxn(Assembled_Buy, polyRPCURL, prikey)
   print(buy_txn_hash)
   
-  quote = SOR_Quote(tkn1_ca_poly, tkn1_dec_poly, token1_ToRecieve, tkn2_ca_poly, tkn2_dec_poly, pubaddress)
-  price2 = quote[1]
-  sell_quote = quote[0]
+  
   Assembled_Sell = SOR_Assemble(sell_quote, pubaddress)
   Assembled_Sell['transaction']['nonce'] = nonce+1
   sell_txn_hash = SOR_SendTxn(Assembled_Sell, polyRPCURL, prikey)
   print(sell_txn_hash)
-
-  network = 'poly'; # could be any supported network
-  key = os.getenv("Owlracle_Key"); # fill your api key here
-  res = requests.get('https://api.owlracle.info/v4/{}/gas?apikey={}'.format(network, key))
-  data = res.json()
-  print(data)
-
 
   log_df = log_trade_event(log_df, 'Buy Side Arb', buy_txn_hash, "USDCe", trade_size, "WETH", price1, poly_web3.eth.gas_price, SOR_GetGas4Quote(buy_quote, polyRPCURL, pubaddress))
   log_df = log_trade_event(log_df, 'Sell Side Arb', sell_txn_hash, "WETH", token1_ToRecieve, "USDCe", price2, poly_web3.eth.gas_price, SOR_GetGas4Quote(sell_quote, polyRPCURL, pubaddress))

@@ -52,11 +52,11 @@ def polyGetDecimals(Address: str, RPCURL: str):
 
 
 # Standard Order Through Odos
-def SOR_Quote(tokenInAdress: str, tknInDecimals: int, ammount: str, tokenOutAddress: str, tknOutDecimals: int, pubaddress: str):
+def SOR_Quote(tokenInAdress: str, tknInDecimals: int, ammount: str, tokenOutAddress: str, tknOutDecimals: int, chainID: int, pubaddress: str):
     quote_url = "https://api.odos.xyz/sor/quote/v2"
 
     quote_request_body = {
-        "chainId": 137, # Replace with desired chainId
+        "chainId": chainID, # Replace with desired chainId
         "inputTokens": [
             {
                 "tokenAddress": tokenInAdress, # checksummed input token address
@@ -69,7 +69,7 @@ def SOR_Quote(tokenInAdress: str, tknInDecimals: int, ammount: str, tokenOutAddr
                 "proportion": 1
             }
         ],
-        "slippageLimitPercent": 0.5, # set your slippage limit percentage (1 = 1%)
+        "slippageLimitPercent": 0.6, # set your slippage limit percentage (1 = 1%)
         "userAddr": pubaddress, # checksummed user address
         "referralCode": 0, # referral code (recommended)
         "disableRFQs": True,
@@ -121,8 +121,11 @@ def SOR_SendTxn(assembled_transaction: str, RPCURL: str, prikey: str):
   transaction = assembled_transaction["transaction"]
   # web3py requires the value to be an integer
   transaction["value"] = int(transaction["value"])
-  transaction["gas"] = int(web3.eth.estimate_gas(transaction)  * 12 // 10)
-  transaction["gasPrice"] = int(web3.eth.gas_price * 12 // 10)
+  try:
+    transaction["gas"] = int(web3.eth.estimate_gas(transaction)  * 12 // 10)
+    transaction["gasPrice"] = int(web3.eth.gas_price * 12 // 10)
+  except:
+     print("Gas calcs failed")
   
   signed_tx = web3.eth.account.sign_transaction(transaction, prikey)
   # 4. Send the signed transaction
@@ -232,7 +235,7 @@ def init_port_log_file(Port_Dir):
        port_df = pd.read_csv(current_filename)
        return port_df
    
-def log_port_event(Port_Dir, port_df, pubaddress, RPCURL, event="Just Checking"):
+def log_port_event(Port_Dir, port_df, pubaddress, RPCURL, chainID, event="Just Checking"):
     web3 = Web3(Web3.HTTPProvider(RPCURL))
 
     WETH_contract = web3.eth.contract(address=os.getenv("poly_WETH_ca"), abi=os.getenv("poly_WETH_abi"))
@@ -244,12 +247,13 @@ def log_port_event(Port_Dir, port_df, pubaddress, RPCURL, event="Just Checking")
     # Create a new row with the data
     row = {
          "Timestamp": "init",
+         "ChainID": chainID,
          "Event": event,
          "Coin1": "WETH",
-         "Price1": SOR_Quote("0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", 18, 1, "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", 6, pubaddress)[1],
+         "Price1": SOR_Quote("0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", 18, 1, "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", 6, chainID, pubaddress)[1],
          "Amount1": WETH_contract.functions.balanceOf(pubaddress).call() / (10 ** int(os.getenv("poly_WETH_dec"))),
          "Coin2": "WBTC",
-         "Price2": SOR_Quote("0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", 18, 1, "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", 6, pubaddress)[1],
+         "Price2": SOR_Quote("0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", 18, 1, "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", 6, chainID, pubaddress)[1],
          "Amount2": WBTC_contract.functions.balanceOf(pubaddress).call() / (10 ** int(os.getenv("poly_WBTC_dec"))),
          "Coin3": "USDCe",
          "Price3": "1",
